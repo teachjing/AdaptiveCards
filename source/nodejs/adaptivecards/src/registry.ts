@@ -68,6 +68,7 @@ export class CardObjectRegistry<T extends SerializableObject> {
 
 export class GlobalRegistry {
     private static _elements?: CardObjectRegistry<CardElement>;
+    private static _singletonElements?: CardObjectRegistry<CardElement>;
     private static _actions?: CardObjectRegistry<Action>;
     private static _forbiddenCarouselElements = new Set<string>();
 
@@ -77,6 +78,12 @@ export class GlobalRegistry {
         GlobalRegistry.defaultElements.copyTo(registry);
     }
 
+    static populateWithDefaultSingletonElements(registry: CardObjectRegistry<CardElement>) {
+        registry.clear();
+
+        GlobalRegistry.defaultSingletonElements.copyTo(registry);
+    }
+
     static populateWithDefaultActions(registry: CardObjectRegistry<Action>) {
         registry.clear();
 
@@ -84,6 +91,7 @@ export class GlobalRegistry {
     }
 
     static readonly defaultElements = new CardObjectRegistry<CardElement>();
+    static readonly defaultSingletonElements = new CardObjectRegistry<CardElement>();
     static readonly defaultActions = new CardObjectRegistry<Action>();
     static readonly forbiddenCarouselElements = new Set<string>();
     static readonly forbiddenCarouselActions = new Set<string>();
@@ -97,6 +105,15 @@ export class GlobalRegistry {
         return GlobalRegistry._elements;
     }
 
+    static get singletonElements(): CardObjectRegistry<CardElement> {
+        if (!GlobalRegistry._singletonElements) {
+            GlobalRegistry._singletonElements = new CardObjectRegistry<CardElement>();
+            GlobalRegistry.populateWithDefaultSingletonElements(GlobalRegistry._singletonElements);
+        }
+
+        return GlobalRegistry._singletonElements;
+    }
+
     static get actions(): CardObjectRegistry<Action> {
         if (!GlobalRegistry._actions) {
             GlobalRegistry._actions = new CardObjectRegistry<Action>();
@@ -105,9 +122,10 @@ export class GlobalRegistry {
 
         return GlobalRegistry._actions;
     }
-
+    
     static reset() {
         GlobalRegistry._elements = undefined;
         GlobalRegistry._actions = undefined;
+        GlobalRegistry._singletonElements = undefined;
     }
 }
