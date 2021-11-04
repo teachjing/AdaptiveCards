@@ -29,7 +29,7 @@ jobs:
        npx lerna run build
        
        cd adaptivecards-site
-       npm install rimraf --save
+       npm install rimraf, dts-generator --save
        npx lerna run release
        
     - name: Configure Github Settings
