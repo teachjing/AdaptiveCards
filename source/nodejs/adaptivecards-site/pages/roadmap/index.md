@@ -8,8 +8,6 @@ This is the tentative list of 1.2 features.  These items are not guaranteed to s
 
 Tentative release date: **Q1 2019**
 
-{% adaptivecard https://adaptivecardsblob.blob.core.windows.net/releaseshelper/releasescard.json %}
-
 ### Adaptive Cards 2.0
 
 More info coming soon!
