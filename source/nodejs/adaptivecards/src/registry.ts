@@ -70,7 +70,6 @@ export class GlobalRegistry {
     private static _elements?: CardObjectRegistry<CardElement>;
     private static _singletonElements?: CardObjectRegistry<CardElement>;
     private static _actions?: CardObjectRegistry<Action>;
-    private static _forbiddenCarouselElements = new Set<string>();
 
     static populateWithDefaultElements(registry: CardObjectRegistry<CardElement>) {
         registry.clear();
@@ -93,9 +92,6 @@ export class GlobalRegistry {
     static readonly defaultElements = new CardObjectRegistry<CardElement>();
     static readonly defaultSingletonElements = new CardObjectRegistry<CardElement>();
     static readonly defaultActions = new CardObjectRegistry<Action>();
-    static readonly forbiddenCarouselElements = new Set<string>();
-    static readonly forbiddenCarouselActions = new Set<string>();
-
     static get elements(): CardObjectRegistry<CardElement> {
         if (!GlobalRegistry._elements) {
             GlobalRegistry._elements = new CardObjectRegistry<CardElement>();

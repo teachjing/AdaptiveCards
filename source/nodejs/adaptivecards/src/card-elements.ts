@@ -1383,7 +1383,7 @@ export class RichTextBlock extends CardElement {
                 }
                 else {
                     // No fallback for inlines in 1.2
-                    inline = context.parseElement(this, jsonInline, false);
+                    inline = context.parseElement(this, jsonInline, [], false);
                 }
 
                 if (inline) {
@@ -1973,6 +1973,10 @@ export abstract class CardElementContainer extends CardElement {
         return false;
     }
 
+    protected forbiddenChildElements(): string[] {
+        return [];
+    }
+
     abstract getItemCount(): number;
     abstract getItemAt(index: number): CardElement;
     abstract getFirstVisibleRenderedItem(): CardElement | undefined;
@@ -1980,6 +1984,7 @@ export abstract class CardElementContainer extends CardElement {
     abstract removeItem(item: CardElement): boolean;
 
     allowVerticalOverflow: boolean = false;
+
 
     internalValidateProperties(context: ValidationResults) {
         super.internalValidateProperties(context);
@@ -5673,33 +5678,6 @@ export class BackgroundImage extends SerializableObject {
     }
 }
 
-export class Display extends SerializableObject {
-    //#region Schema
-
-    static readonly typeProperty = new StringProperty(Versions.v1_6, "type");
-    static readonly timerProperty = new NumProperty(Versions.v1_6, "timer");
-
-    @property(Display.typeProperty)
-    type?: string;
-
-    @property(Display.timerProperty)
-    timerProperty?: number;
-
-    //#endregion
-
-    protected getSchemaKey(): string {
-        return "Display";
-    }
-
-    protected internalParse(source: any, context: BaseSerializationContext) {
-        return super.internalParse(source, context);
-    }
-
-    isValid(): boolean {
-        return true;
-    }
-}
-
 export class Container extends ContainerBase {
     //#region Schema
     static readonly backgroundImageProperty = new SerializableObjectProperty(
@@ -5904,7 +5882,7 @@ export class Container extends ContainerBase {
 
         if (Array.isArray(jsonItems)) {
             for (let item of jsonItems) {
-                let element = context.parseElement(this, item, !this.isDesignMode());
+                let element = context.parseElement(this, item, this.forbiddenChildElements(), !this.isDesignMode());
 
                 if (element) {
                     this.insertItemAt(element, -1, true);
@@ -6998,12 +6976,6 @@ export class AdaptiveCard extends ContainerWithActions implements ISingletonCont
     static readonly refreshProperty = new SerializableObjectProperty(Versions.v1_4, "refresh", RefreshDefinition, true);
     static readonly authenticationProperty = new SerializableObjectProperty(Versions.v1_4, "authentication", Authentication, true);
 
-    static readonly displayProperty = new SerializableObjectProperty(
-        Versions.v1_6,
-        "display",
-        Display,
-        true);
-
     @property(AdaptiveCard.versionProperty)
     version: Version;
 
@@ -7028,9 +7000,6 @@ export class AdaptiveCard extends ContainerWithActions implements ISingletonCont
 
     @property(AdaptiveCard.authenticationProperty)
     authentication?: Authentication;
-
-    @property(AdaptiveCard.displayProperty)
-    display?: Display;
 
     //#endregion
 
@@ -7105,17 +7074,20 @@ export class AdaptiveCard extends ContainerWithActions implements ISingletonCont
         }
     }
 
+    getForbiddenActionTypes(): ActionType[] {
+        return (this._singletonChild) ? this._singletonChild.getForbiddenActionTypes() : [];
+    }
+
     protected internalParse(source: any, context: SerializationContext) {
         this._fallbackCard = undefined;
 
-        let fallbackElement = context.parseElement(undefined, source["fallback"], !this.isDesignMode());
+        let fallbackElement = context.parseElement(undefined, source["fallback"], this.forbiddenChildElements(), !this.isDesignMode());
 
         if (fallbackElement) {
             this._fallbackCard = new AdaptiveCard();
             this._fallbackCard.addItem(fallbackElement);
         }
 
-        // Parse all properties to determine if the card is a carousel card
         super.internalParse(source, context);
     }
 
@@ -7330,61 +7302,64 @@ export class SerializationContext extends BaseSerializationContext {
     private _singletonElementRegistry?: CardObjectRegistry<CardElement>;
     private _actionRegistry?: CardObjectRegistry<Action>;
 
-    private _forbiddenElementTypes?: string[];
-    private _forbiddenActionTypes?: string[];
-
+    private _forbiddenTypes: Set<string> = new Set<string>();
     private internalParseCardObject<T extends CardObject>(
         parent: CardElement | undefined,
         source: any,
-        forbiddenElementTypes: string[],
+        forbiddenTypes: Set<string>,
         allowFallback: boolean,
         createInstanceCallback: (typeName: string | undefined) => T | undefined,
         logParseEvent: (typeName: string | undefined, errorType: Enums.TypeErrorType) => void): T | undefined {
         let result: T | undefined = undefined;
 
         if (source && typeof source === "object") {
+            const oldForbiddenTypes = this._forbiddenTypes;
+            forbiddenTypes.forEach((type) => { this._forbiddenTypes.add(type);});
+
             const typeName = Utils.parseString(source["type"]);
 
-            if (typeName && forbiddenElementTypes.indexOf(typeName) >= 0) {
+            if (typeName && this._forbiddenTypes.has(typeName)) {
                 logParseEvent(typeName, Enums.TypeErrorType.ForbiddenType);
-                return result;
-            }
-
-            let tryToFallback = false;
-
-            result = createInstanceCallback(typeName);
-
-            if (!result) {
-                tryToFallback = GlobalSettings.enableFallback && allowFallback;
-
-                logParseEvent(typeName, Enums.TypeErrorType.UnknownType);
             }
             else {
-                result.setParent(parent);
-                result.parse(source, this);
+                let tryToFallback = false;
 
-                tryToFallback = GlobalSettings.enableFallback && allowFallback && result.shouldFallback();
+                result = createInstanceCallback(typeName);
+
+                if (!result) {
+                    tryToFallback = GlobalSettings.enableFallback && allowFallback;
+
+                    logParseEvent(typeName, Enums.TypeErrorType.UnknownType);
+                }
+                else {
+                    result.setParent(parent);
+                    result.parse(source, this);
+
+                    tryToFallback = GlobalSettings.enableFallback && allowFallback && result.shouldFallback();
+                }
+
+                if (tryToFallback) {
+                    let fallback = source["fallback"];
+
+                    if (!fallback && parent) {
+                        parent.setShouldFallback(true);
+                    }
+                    if (typeof fallback === "string" && fallback.toLowerCase() === "drop") {
+                        result = undefined;
+                    }
+                    else if (typeof fallback === "object") {
+                        result = this.internalParseCardObject<T>(
+                            parent,
+                            fallback,
+                            new Set<string>(), // definitely not this
+                            true,
+                            createInstanceCallback,
+                            logParseEvent);
+                    }
+                }
             }
 
-            if (tryToFallback) {
-                let fallback = source["fallback"];
-
-                if (!fallback && parent) {
-                    parent.setShouldFallback(true);
-                }
-                if (typeof fallback === "string" && fallback.toLowerCase() === "drop") {
-                    result = undefined;
-                }
-                else if (typeof fallback === "object") {
-                    result = this.internalParseCardObject<T>(
-                        parent,
-                        fallback,
-                        forbiddenElementTypes,
-                        true,
-                        createInstanceCallback,
-                        logParseEvent);
-                }
-            }
+            this._forbiddenTypes = oldForbiddenTypes;
         }
 
         return result;
@@ -7421,10 +7396,11 @@ export class SerializationContext extends BaseSerializationContext {
         allowFallback: boolean,
         createInstanceCallback: (typeName: string) => T | undefined,
         logParseEvent: (typeName: string, errorType: Enums.TypeErrorType) => void): T | undefined {
+        const forbiddenTypes = new Set<string>(forbiddenTypeNames);
         let result = this.internalParseCardObject(
             parent,
             source,
-            forbiddenTypeNames,
+            forbiddenTypes,
             allowFallback,
             createInstanceCallback,
             logParseEvent);
@@ -7468,18 +7444,13 @@ export class SerializationContext extends BaseSerializationContext {
     parseElement(
         parent: CardElement | undefined,
         source: any,
+        forbiddenTypes: string[],
         allowFallback: boolean): CardElement | undefined {
-
-        let forbiddenTypes: string[] = [];
-        // if (parent?.isInCarouselCard())
-        // {
-        //     forbiddenTypes = Array.from(GlobalRegistry.forbiddenCarouselElements.values());
-        // }
 
         return this.parseCardObject<CardElement>(
             parent,
             source,
-            forbiddenTypes, // Forbidden types not supported for elements for now
+            forbiddenTypes,
             allowFallback,
             (typeName: string) => {
                 return this.elementRegistry.createInstance(typeName, this.targetVersion);
@@ -7577,15 +7548,3 @@ GlobalRegistry.defaultActions.register(SubmitAction.JsonTypeName, SubmitAction);
 GlobalRegistry.defaultActions.register(ShowCardAction.JsonTypeName, ShowCardAction);
 GlobalRegistry.defaultActions.register(ToggleVisibilityAction.JsonTypeName, ToggleVisibilityAction, Versions.v1_2);
 GlobalRegistry.defaultActions.register(ExecuteAction.JsonTypeName, ExecuteAction, Versions.v1_4);
-
-GlobalRegistry.forbiddenCarouselElements.add("Media");
-GlobalRegistry.forbiddenCarouselElements.add("ActionSet");
-GlobalRegistry.forbiddenCarouselElements.add("Input.Text");
-GlobalRegistry.forbiddenCarouselElements.add("Input.Date");
-GlobalRegistry.forbiddenCarouselElements.add("Input.Time");
-GlobalRegistry.forbiddenCarouselElements.add("Input.Number");
-GlobalRegistry.forbiddenCarouselElements.add("Input.ChoiceSet");
-GlobalRegistry.forbiddenCarouselElements.add("Input.Toggle");
-
-GlobalRegistry.forbiddenCarouselActions.add(ShowCardAction.JsonTypeName);
-GlobalRegistry.forbiddenCarouselActions.add(ToggleVisibilityAction.JsonTypeName);

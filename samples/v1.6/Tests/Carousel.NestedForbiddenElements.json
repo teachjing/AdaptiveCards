@@ -6,7 +6,10 @@
 		"type": "carousel",
 		"timer": 5000
 	},
-	"body": [
+	"body": {
+		"type": "Carousel",
+		"timer": 5000,
+		"pages": [
 		{
 			"type": "CarouselPage",
 			"id": "firstCarouselPage",
@@ -196,5 +199,5 @@
 				}
 			]
 		}
-	]
+	}
 }

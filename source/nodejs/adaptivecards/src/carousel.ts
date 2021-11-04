@@ -1,6 +1,6 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { CardElement, Container, ContainerBase, SerializationContext, ShowCardAction, ToggleVisibilityAction } from "./card-elements";
+import { ActionType, CardElement, Container, ContainerBase, SerializationContext, ShowCardAction, ToggleVisibilityAction } from "./card-elements";
 import { NumProperty, property, PropertyBag, Versions } from "./serialization";
 import { GlobalRegistry } from "./registry";
 import { TypeErrorType, ValidationEvent } from "./enums";
@@ -37,19 +37,10 @@ export class CarouselPage extends Container {
         Utils.appendChild(swiperSlide, renderedElement);
         return swiperSlide;
     }
-    static readonly unsupportedElements = [
-        ShowCardAction.JsonTypeName,
-        ToggleVisibilityAction.JsonTypeName,
-        "Media",
-        "ActionSet",
-        "TextInput",
-        "DateInput",
-        "TimeInput",
-        "NumberInput",
-        "ChoiceSetInput",
-        "ToggleInput"
-    ];
 
+    getForbiddenActionTypes() : ActionType[] {
+        return [ShowCardAction, ToggleVisibilityAction]
+    }
 
     protected internalParse(source: any, context: SerializationContext) {
         super.internalParse(source, context);
@@ -100,6 +91,22 @@ export class Carousel extends ContainerBase {
 
     private _pages: CarouselPage[] = [];
     private _renderedPages: CarouselPage[];
+
+    protected forbiddenChildElements(): string[] {
+        return [
+            ToggleVisibilityAction.JsonTypeName,
+            ShowCardAction.JsonTypeName,
+            "Media",
+            "ActionSet",
+            "Input.Text",
+            "Input.Date",
+            "Input.Time",
+            "Input.Number",
+            "Input.ChoiceSet",
+            "Input.Toggle",
+            ...super.forbiddenChildElements()
+        ];
+    }
 
     getJsonTypeName(): string {
         return "Carousel";
@@ -278,7 +285,7 @@ export class Carousel extends ContainerBase {
         return context.parseCardObject<CarouselPage>(
             this,
             source,
-            CarouselPage.unsupportedElements,
+            this.forbiddenChildElements(),
             !this.isDesignMode(),
             (typeName: string) => {
                 return !typeName || typeName === "CarouselPage" ? new CarouselPage() : undefined;
