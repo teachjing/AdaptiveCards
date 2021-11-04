@@ -31,6 +31,7 @@ jobs:
        cd adaptivecards-site
        npm install rimraf --save
        npm install dts-generator --save
+       npm install jest --save
        npx lerna run release
        
     - name: Configure Github Settings
