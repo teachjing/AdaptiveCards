@@ -26,7 +26,6 @@ jobs:
        cd source/nodejs
        npm i
        npx lerna bootstrap
-       npx lerna run build
        
        cd adaptivecards-site
        npx lerna run release
@@ -45,3 +44,9 @@ jobs:
       run: git commit -m "Building files"
     - name: Push changes
       run: git push     
+
+    #- run: |
+    #   cd source/nodejs
+    #   npm i
+    #   npx lerna bootstrap
+    #   npx lerna run build
