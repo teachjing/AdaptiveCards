@@ -1,4 +1,4 @@
-name: "Daily Code Scanning - Action"
+name: "Build Site"
 
 on:
   schedule:
