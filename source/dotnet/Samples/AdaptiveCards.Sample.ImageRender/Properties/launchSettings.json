@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "AdaptiveCards.Sample.ImageRender": {
-      "commandName": "Project",
-      "commandLineArgs": "-r  -o ./out"
-    }
-  }
-}
