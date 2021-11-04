@@ -26,9 +26,10 @@ jobs:
        cd source/nodejs
        npm install
        npx lerna bootstrap
+       npx lerna run build
        
        cd adaptivecards-site
-       npm install
+       npm install rimraf --save
        npx lerna run release
        
     - name: Configure Github Settings
