@@ -24,10 +24,10 @@ jobs:
 
     - run: |
        cd source/nodejs
-       npm i
        npx lerna bootstrap
        
        cd adaptivecards-site
+       npm install
        npx lerna run release
        
     - name: Configure Github Settings
