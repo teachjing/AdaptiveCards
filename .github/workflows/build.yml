@@ -1,11 +1,11 @@
 name: "Build Site"
 
 on:
+  push:
+  workflow_dispatch:
   schedule:
     - cron: '0 0 * * 0'
   
-  workflow_dispatch:
-
 jobs:
   CodeQL-Build-NodeJS:
     strategy:
