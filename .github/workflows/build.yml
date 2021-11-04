@@ -33,6 +33,7 @@ jobs:
        npm install dts-generator --save
        npm install jest --save
        npx lerna run release
+       npm run build
        
     - name: Configure Github Settings
       run: |
