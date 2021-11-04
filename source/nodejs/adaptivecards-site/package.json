@@ -48,7 +48,6 @@
 		"monaco-editor": "^0.29.1",
 		"request": "^2.88.2",
 		"request-promise": "^4.2.5",
-		"rimraf": "^3.0.2",
 		"yaml-front-matter": "^4.1.0"
 	}
 }
