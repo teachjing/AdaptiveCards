@@ -41,6 +41,6 @@ jobs:
       env:
         REPO: self
         BRANCH: gh-pages
-        FOLDER: public
+        FOLDER: source/nodejs/adaptivecards-site/public
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
