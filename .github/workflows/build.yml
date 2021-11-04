@@ -51,4 +51,4 @@ jobs:
         REPO: git@github.com:teachjing/cards.git
         BRANCH: main
         FOLDER: source/nodejs/adaptivecards-site/public
-        SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
