@@ -1,0 +1,47 @@
+name: "Daily Code Scanning - Action"
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  
+  workflow_dispatch:
+
+jobs:
+  CodeQL-Build-NodeJS:
+    strategy:
+      fail-fast: false
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: javascript
+
+    - run: |
+       cd source/nodejs
+       npm i
+       npx lerna bootstrap
+       npx lerna run build
+       
+       cd adaptivecards-site
+       npx lerna run release
+       
+    - name: Configure Github Settings
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+    - name: append to file
+      run: date >> published.txt
+    - name: Check for changes
+      run: git status
+    - name: Stage changed files
+      run: git add .
+    - name: Commit changed files
+      run: git commit -m "Building files"
+    - name: Push changes
+      run: git push     
